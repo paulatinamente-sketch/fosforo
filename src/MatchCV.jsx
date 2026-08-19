@@ -669,7 +669,7 @@ export default function MatchCV() {
           <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 34, color: BRAND.text, margin: 0, marginTop: -8, fontWeight: 800, letterSpacing: -0.5 }}>
             ¿Este puesto es para vos?
           </h1>
-          <p style={{ fontFamily: "Poppins, sans-serif", fontWeight: 300, fontSize: 14.5, color: BRAND.textMuted, marginTop: 10, maxWidth: 560, lineHeight: 1.6 }}>
+          <p style={{ fontFamily: "Poppins, sans-serif", fontWeight: 300, fontSize: 14.5, color: BRAND.textMuted, marginTop: 10, lineHeight: 1.6, textAlign: "center", maxWidth: 600, marginLeft: "auto", marginRight: "auto" }}>
             Pegá capturas de la búsqueda y de tu CV. Podrás ver qué tareas y responsabilidades coinciden, cuáles son parciales y qué te falta, con la mirada de una reclutadora, no de un buscador de palabras clave.
           </p>
         </div>
