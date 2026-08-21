@@ -670,7 +670,7 @@ export default function MatchCV() {
             ¿Este puesto es para vos?
           </h1>
           <p style={{ fontFamily: "Poppins, sans-serif", fontWeight: 300, fontSize: 14.5, color: BRAND.textMuted, marginTop: 10, lineHeight: 1.6 }}>
-            Pegá capturas de la búsqueda y de tu CV. Podrás ver qué tareas y responsabilidades coinciden, cuáles son parciales y qué te falta, con la mirada de una reclutadora, no de un buscador de palabras clave.
+            Pegá capturas de la búsqueda y de tu CV. Podrás ver qué tareas y responsabilidades coinciden, cuáles son parciales y qué te falta, con la mirada de una reclutadora, no de un buscador de palabras clave. Recibirás sugerencias que podrás editar en línea y volver a evaluar el match, la idea es ayudarte a visibilizar mejor lo que ya tenés, no maquillar tu CV.
           </p>
         </div>
 
