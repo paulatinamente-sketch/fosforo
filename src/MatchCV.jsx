@@ -877,6 +877,35 @@ export default function MatchCV() {
           </div>
         )}
       </div>
+
+      <div style={{ borderTop: `1px dashed ${BRAND.stone}`, marginTop: 40, paddingTop: 20, paddingBottom: 10, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: BRAND.stone }}>
+          By <a href="https://www.linkedin.com/company/paulatinamente-hr" target="_blank" rel="noopener noreferrer" style={{ color: BRAND.stone, textDecoration: "underline" }}>Paulatinamente HR</a>
+        </span>
+        <div style={{ display: "flex", gap: 14 }}>
+          <a href="https://www.instagram.com/paulatinamente.hr" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BRAND.stone} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="5" />
+              <circle cx="12" cy="12" r="5" />
+              <circle cx="17.5" cy="6.5" r="1.5" fill={BRAND.stone} stroke="none" />
+            </svg>
+          </a>
+          <a href="https://www.linkedin.com/company/paulatinamente-hr" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BRAND.stone} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="3" />
+              <path d="M7 11v5" />
+              <path d="M7 8v.01" />
+              <path d="M11 11v5" />
+              <path d="M11 14c0-2 1.5-3 3-3s3 1 3 3v3" />
+            </svg>
+          </a>
+          <a href="https://www.tiktok.com/@paulatinamente.hr" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill={BRAND.stone}>
+              <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 0 0-.79-.05A6.34 6.34 0 0 0 3.15 15a6.34 6.34 0 0 0 10.86 4.46A6.34 6.34 0 0 0 16 13.07V9.34a8.25 8.25 0 0 0 4.81 1.53V7.43a4.85 4.85 0 0 1-1.22-.74z" />
+            </svg>
+          </a>
+        </div>
+      </div>
     </div>
   );
 }
