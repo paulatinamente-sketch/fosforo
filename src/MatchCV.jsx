@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import * as pdfjsLib from "pdfjs-dist";
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 const SYSTEM_PROMPT = `Sos un evaluador experto en selección de personal con más de 30 años de experiencia en RR.HH. Tu tarea es comparar la descripción de un puesto de trabajo con el CV de un candidato y devolver ÚNICAMENTE un objeto JSON (sin texto adicional, sin markdown, sin bloques de código) con esta estructura exacta:
 
@@ -260,14 +262,57 @@ function fileToImageData(file) {
   });
 }
 
-function InputPanel({ label, panel, setPanel, hint }) {
+function InputPanel({ label, panel, setPanel, hint, acceptPdf, acceptUrl }) {
   const fileInputRef = useRef(null);
+  const pdfInputRef = useRef(null);
+  const [urlInput, setUrlInput] = useState("");
+  const [urlLoading, setUrlLoading] = useState(false);
+  const [urlError, setUrlError] = useState(null);
 
   async function handleFiles(files) {
     const nuevos = Array.from(files || []).filter((f) => f.type.startsWith("image/"));
     if (nuevos.length === 0) return;
     const imagenes = await Promise.all(nuevos.map(fileToImageData));
     setPanel((p) => ({ ...p, images: [...p.images, ...imagenes] }));
+  }
+
+  async function handlePdfFiles(files) {
+    const pdfFiles = Array.from(files || []).filter((f) => f.type === "application/pdf");
+    if (pdfFiles.length === 0) return;
+    const textos = [];
+    for (const file of pdfFiles) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let texto = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        texto += content.items.map((item) => item.str).join(" ") + "\n";
+      }
+      textos.push(texto.trim());
+    }
+    setPanel((p) => ({ ...p, pdfText: [...p.pdfText, ...textos].join("\n\n") }));
+  }
+
+  async function fetchUrl() {
+    if (!urlInput.trim()) return;
+    setUrlLoading(true);
+    setUrlError(null);
+    try {
+      const res = await fetch("/api/fetch-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: urlInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al obtener el contenido");
+      setPanel((p) => ({ ...p, urlText: data.text }));
+      setUrlInput("");
+    } catch (e) {
+      setUrlError(e.message);
+    } finally {
+      setUrlLoading(false);
+    }
   }
 
   function handlePaste(e) {
@@ -290,6 +335,10 @@ function InputPanel({ label, panel, setPanel, hint }) {
     setPanel((p) => ({ ...p, images: p.images.filter((im) => im.id !== id) }));
   }
 
+  function tieneContenido() {
+    return panel.images.length > 0 || panel.pdfText.trim().length > 0 || (acceptUrl && panel.urlText.trim().length > 0);
+  }
+
   return (
     <div>
       <div style={{ marginBottom: 6 }}>
@@ -306,7 +355,11 @@ function InputPanel({ label, panel, setPanel, hint }) {
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
-          handleFiles(e.dataTransfer.files);
+          const droppedFiles = Array.from(e.dataTransfer.files);
+          const images = droppedFiles.filter((f) => f.type.startsWith("image/"));
+          const pdfs = droppedFiles.filter((f) => f.type === "application/pdf");
+          if (images.length > 0) handleFiles(images);
+          if (pdfs.length > 0) handlePdfFiles(pdfs);
         }}
         tabIndex={0}
         style={{
@@ -333,8 +386,20 @@ function InputPanel({ label, panel, setPanel, hint }) {
             e.target.value = "";
           }}
         />
+        {acceptPdf && (
+          <input
+            ref={pdfInputRef}
+            type="file"
+            accept=".pdf"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              handlePdfFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+        )}
 
-        {panel.images.length === 0 && (
+        {!tieneContenido() && (
           <div
             onClick={() => fileInputRef.current?.click()}
             style={{
@@ -359,71 +424,194 @@ function InputPanel({ label, panel, setPanel, hint }) {
           </div>
         )}
 
-        {panel.images.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {panel.images.map((im, i) => (
-              <div key={im.id} style={{ position: "relative", width: 84, height: 84 }}>
-                <img
-                  src={im.dataUrl}
-                  alt={`página ${i + 1}`}
-                  style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 6, border: `1px solid ${BRAND.stone}` }}
-                />
-                <span
-                  style={{
-                    position: "absolute",
-                    bottom: 3,
-                    left: 3,
-                    fontFamily: "Poppins, sans-serif",
-                    fontSize: 9.5,
-                    fontWeight: 600,
-                    color: "#FFFFFF",
-                    background: "rgba(27,26,51,0.75)",
-                    borderRadius: 4,
-                    padding: "1px 5px",
-                  }}
-                >
-                  {i + 1}
-                </span>
+        {tieneContenido() && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {panel.images.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {panel.images.map((im, i) => (
+                  <div key={im.id} style={{ position: "relative", width: 84, height: 84 }}>
+                    <img
+                      src={im.dataUrl}
+                      alt={`página ${i + 1}`}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 6, border: `1px solid ${BRAND.stone}` }}
+                    />
+                    <span
+                      style={{
+                        position: "absolute",
+                        bottom: 3,
+                        left: 3,
+                        fontFamily: "Poppins, sans-serif",
+                        fontSize: 9.5,
+                        fontWeight: 600,
+                        color: "#FFFFFF",
+                        background: "rgba(27,26,51,0.75)",
+                        borderRadius: 4,
+                        padding: "1px 5px",
+                      }}
+                    >
+                      {i + 1}
+                    </span>
+                    <button
+                      onClick={() => quitarImagen(im.id)}
+                      style={{
+                        position: "absolute",
+                        top: -6,
+                        right: -6,
+                        width: 18,
+                        height: 18,
+                        borderRadius: "50%",
+                        border: "none",
+                        background: BRAND.text,
+                        color: "#FFFFFF",
+                        fontSize: 11,
+                        lineHeight: "18px",
+                        textAlign: "center",
+                        padding: 0,
+                        cursor: "pointer",
+                      }}
+                      aria-label="Quitar imagen"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
                 <button
-                  onClick={() => quitarImagen(im.id)}
+                  onClick={() => fileInputRef.current?.click()}
                   style={{
-                    position: "absolute",
-                    top: -6,
-                    right: -6,
-                    width: 18,
-                    height: 18,
-                    borderRadius: "50%",
-                    border: "none",
-                    background: BRAND.text,
-                    color: "#FFFFFF",
+                    width: 84,
+                    height: 84,
+                    borderRadius: 6,
+                    border: `1.5px dashed ${BRAND.stone}`,
+                    background: "transparent",
+                    color: BRAND.textMuted,
+                    fontFamily: "Poppins, sans-serif",
                     fontSize: 11,
-                    lineHeight: "18px",
-                    textAlign: "center",
-                    padding: 0,
                     cursor: "pointer",
                   }}
-                  aria-label="Quitar imagen"
+                >
+                  + agregar
+                </button>
+              </div>
+            )}
+
+            {panel.pdfText && (
+              <div style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: BRAND.text, background: "#F5F5F5", borderRadius: 6, padding: "8px 10px", position: "relative" }}>
+                <span style={{ fontWeight: 600 }}>📄 PDF: </span>{panel.pdfText.slice(0, 120)}...
+                <button
+                  onClick={() => setPanel((p) => ({ ...p, pdfText: "" }))}
+                  style={{
+                    position: "absolute", top: 4, right: 6,
+                    border: "none", background: "transparent", color: BRAND.textMuted, cursor: "pointer", fontSize: 14, fontWeight: 700,
+                  }}
                 >
                   ×
                 </button>
               </div>
-            ))}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                width: 84,
-                height: 84,
-                borderRadius: 6,
-                border: `1.5px dashed ${BRAND.stone}`,
-                background: "transparent",
-                color: BRAND.textMuted,
-                fontFamily: "Poppins, sans-serif",
-                fontSize: 11,
-                cursor: "pointer",
-              }}
-            >
-              + agregar
-            </button>
+            )}
+
+            {acceptUrl && panel.urlText && (
+              <div style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: BRAND.text, background: "#F5F5F5", borderRadius: 6, padding: "8px 10px", position: "relative" }}>
+                <span style={{ fontWeight: 600 }}>🔗 Link: </span>{panel.urlText.slice(0, 120)}...
+                <button
+                  onClick={() => setPanel((p) => ({ ...p, urlText: "" }))}
+                  style={{
+                    position: "absolute", top: 4, right: 6,
+                    border: "none", background: "transparent", color: BRAND.textMuted, cursor: "pointer", fontSize: 14, fontWeight: 700,
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  borderRadius: 6,
+                  border: `1.5px solid ${BRAND.stone}`,
+                  background: "#FFFFFF",
+                  fontFamily: "Poppins, sans-serif",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: BRAND.text,
+                  cursor: "pointer",
+                }}
+              >
+                📷 Agregar imagen
+              </button>
+              {acceptPdf && (
+                <button
+                  onClick={() => pdfInputRef.current?.click()}
+                  style={{
+                    flex: 1,
+                    padding: "8px 12px",
+                    borderRadius: 6,
+                    border: `1.5px solid ${BRAND.stone}`,
+                    background: "#FFFFFF",
+                    fontFamily: "Poppins, sans-serif",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: BRAND.text,
+                    cursor: "pointer",
+                  }}
+                >
+                  📄 Agregar PDF
+                </button>
+              )}
+            </div>
+
+            {acceptUrl && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: BRAND.textMuted }}>
+                  O pegá el link del aviso laboral:
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input
+                    type="url"
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && fetchUrl()}
+                    placeholder="https://..."
+                    disabled={urlLoading}
+                    style={{
+                      flex: 1,
+                      padding: "8px 10px",
+                      borderRadius: 6,
+                      border: `1.5px solid ${BRAND.stone}`,
+                      fontFamily: "Poppins, sans-serif",
+                      fontSize: 12,
+                      color: BRAND.text,
+                      outline: "none",
+                    }}
+                  />
+                  <button
+                    onClick={fetchUrl}
+                    disabled={urlLoading || !urlInput.trim()}
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: 6,
+                      border: `1.5px solid ${BRAND.ink}`,
+                      background: urlLoading || !urlInput.trim() ? BRAND.stone : "transparent",
+                      color: urlLoading || !urlInput.trim() ? "#999" : BRAND.ink,
+                      fontFamily: "Poppins, sans-serif",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: urlLoading || !urlInput.trim() ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {urlLoading ? "..." : "Cargar"}
+                  </button>
+                </div>
+                {urlError && (
+                  <div style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: "#A85039" }}>
+                    {urlError}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -431,7 +619,7 @@ function InputPanel({ label, panel, setPanel, hint }) {
   );
 }
 
-const emptyPanel = () => ({ images: [] });
+const emptyPanel = () => ({ images: [], pdfText: "", urlText: "" });
 
 export default function MatchCV() {
   useBrandFonts();
@@ -471,22 +659,49 @@ export default function MatchCV() {
     }
   }, [error]);
 
-  const puestoListo = puesto.images.length > 0;
-  const cvListo = cv.images.length > 0;
+  function tieneContenidoPanel(p) {
+    return p.images.length > 0 || (p.pdfText && p.pdfText.trim().length > 0) || (p.urlText && p.urlText.trim().length > 0);
+  }
+  const puestoListo = tieneContenidoPanel(puesto);
+  const cvListo = tieneContenidoPanel(cv);
   const puedeEvaluar = puestoListo && cvListo && !loading;
-  const hayAlgoParaLimpiar = puesto.images.length > 0 || cv.images.length > 0 || resultado;
+  const hayAlgoParaLimpiar = tieneContenidoPanel(puesto) || tieneContenidoPanel(cv) || resultado;
 
   function bloquesDe(panel, etiqueta) {
-    const nota = panel.images.length > 1
-      ? `${etiqueta} (${panel.images.length} imágenes adjuntas, en orden — tratalas como un solo documento continuo):`
-      : `${etiqueta} (imagen adjunta):`;
-    return [
-      { type: "text", text: nota },
-      ...panel.images.map((im) => ({
-        type: "image",
-        source: { type: "base64", media_type: im.mediaType, data: im.base64 },
-      })),
-    ];
+    const hasImages = panel.images.length > 0;
+    const hasPdf = panel.pdfText && panel.pdfText.trim().length > 0;
+    const hasUrl = panel.urlText && panel.urlText.trim().length > 0;
+    const total = (hasImages ? 1 : 0) + (hasPdf ? 1 : 0) + (hasUrl ? 1 : 0);
+
+    const bloques = [];
+
+    if (total === 0) return bloques;
+
+    if (total === 1) {
+      bloques.push({ type: "text", text: `${etiqueta} (adjunto):` });
+    } else {
+      bloques.push({ type: "text", text: `${etiqueta} (${total} fuentes adjuntas):` });
+    }
+
+    if (hasImages) {
+      const notaImgs = panel.images.length > 1
+        ? `${panel.images.length} imágenes adjuntas, en orden — tratalas como un solo documento continuo:`
+        : "imagen adjunta:";
+      bloques.push({ type: "text", text: notaImgs });
+      panel.images.forEach((im) => {
+        bloques.push({ type: "image", source: { type: "base64", media_type: im.mediaType, data: im.base64 } });
+      });
+    }
+
+    if (hasPdf) {
+      bloques.push({ type: "text", text: `Contenido extraído del PDF:\n${panel.pdfText}` });
+    }
+
+    if (hasUrl) {
+      bloques.push({ type: "text", text: `Contenido extraído del link:\n${panel.urlText}` });
+    }
+
+    return bloques;
   }
 
   async function llamarIA(bloques) {
@@ -675,12 +890,13 @@ export default function MatchCV() {
         </div>
 
         <div className="fosforo-grid" style={{ marginBottom: 10 }}>
-          <InputPanel label="Descripción del puesto" panel={puesto} setPanel={setPuesto} />
+          <InputPanel label="Descripción del puesto" panel={puesto} setPanel={setPuesto} acceptUrl />
           <InputPanel
             label="Tu CV"
             panel={cv}
             setPanel={setCv}
-            hint="¿Tu CV tiene varias hojas? Subí una captura por página, en orden."
+            hint="Si tu CV es una imagen escaneada o foto, subilo como imagen. El PDF funciona mejor si el texto es seleccionable."
+            acceptPdf
           />
         </div>
 
