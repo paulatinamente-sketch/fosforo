@@ -523,24 +523,24 @@ function InputPanel({ label, panel, setPanel, hint, acceptPdf, acceptUrl }) {
         )}
 
         {acceptPdf && (
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button
-              onClick={() => pdfInputRef.current?.click()}
-              style={{
-                padding: "6px 14px",
-                borderRadius: 6,
-                border: `1.5px solid ${BRAND.stone}`,
-                background: "#FFFFFF",
-                fontFamily: "Poppins, sans-serif",
-                fontSize: 12,
-                fontWeight: 500,
-                color: BRAND.text,
-                cursor: "pointer",
-              }}
-            >
-              📄 Agregar PDF
-            </button>
-          </div>
+          <button
+            onClick={() => pdfInputRef.current?.click()}
+            style={{
+              width: "100%",
+              padding: "10px 14px",
+              borderRadius: 6,
+              border: `1.5px solid ${BRAND.stone}`,
+              background: "#FFFFFF",
+              fontFamily: "Poppins, sans-serif",
+              fontSize: 12,
+              fontWeight: 500,
+              color: BRAND.text,
+              cursor: "pointer",
+              textAlign: "center",
+            }}
+          >
+            📄 Agregar PDF
+          </button>
         )}
 
         {acceptUrl && (
