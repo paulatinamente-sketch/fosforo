@@ -413,7 +413,7 @@ function InputPanel({ label, panel, setPanel, hint, acceptPdf, acceptUrl }) {
               color: BRAND.textMuted,
               fontSize: 12.5,
               lineHeight: 1.6,
-              minHeight: 140,
+              minHeight: 120,
             }}
           >
             <div>
@@ -522,30 +522,12 @@ function InputPanel({ label, panel, setPanel, hint, acceptPdf, acceptUrl }) {
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              flex: 1,
-              padding: "8px 12px",
-              borderRadius: 6,
-              border: `1.5px solid ${BRAND.stone}`,
-              background: "#FFFFFF",
-              fontFamily: "Poppins, sans-serif",
-              fontSize: 12,
-              fontWeight: 500,
-              color: BRAND.text,
-              cursor: "pointer",
-            }}
-          >
-            📷 Agregar imagen
-          </button>
-          {acceptPdf && (
+        {acceptPdf && (
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button
               onClick={() => pdfInputRef.current?.click()}
               style={{
-                flex: 1,
-                padding: "8px 12px",
+                padding: "6px 14px",
                 borderRadius: 6,
                 border: `1.5px solid ${BRAND.stone}`,
                 background: "#FFFFFF",
@@ -558,8 +540,8 @@ function InputPanel({ label, panel, setPanel, hint, acceptPdf, acceptUrl }) {
             >
               📄 Agregar PDF
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {acceptUrl && (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
