@@ -40,4 +40,4 @@ npx vercel --prod --yes
 
 ## Licencia
 
-Proyecto para CoderCup 2026.
+Todos los derechos reservados.

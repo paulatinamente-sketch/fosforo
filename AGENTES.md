@@ -4,7 +4,7 @@ Este proyecto puede ser asistido por agentes de IA (Copilot, Cursor, Claude, etc
 
 ## Contexto del proyecto
 
-- **Fósforo** es una app de匹配 laboral con IA para la competencia CoderCup 2026
+- **Fósforo** es una app de匹配 laboral con IA
 - Usa React + Vite, Gemini API con visión de imágenes, desplegada en Vercel
 - El usuario es principiante; preferí soluciones simples y directas
 
